@@ -1,0 +1,46 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="FileTransferHelper.App"
+             xmlns:local="using:FileTransferHelper"
+             RequestedThemeVariant="Default">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+
+    <Application.Resources>
+        <TransformOperations x:Key="AppThinVerticalScrollThumbTransform">scaleX(0.125) translateX(-2px)</TransformOperations>
+        <TransformOperations x:Key="AppThinHorizontalScrollThumbTransform">scaleY(0.125) translateY(-2px)</TransformOperations>
+    </Application.Resources>
+  
+    <Application.Styles>
+        <FluentTheme />
+
+        <Style Selector="ScrollBar:vertical">
+            <Setter Property="MinWidth" Value="6"/>
+            <Setter Property="MaxWidth" Value="6"/>
+        </Style>
+        <Style Selector="ScrollBar:horizontal">
+            <Setter Property="MinHeight" Value="6"/>
+            <Setter Property="MaxHeight" Value="6"/>
+        </Style>
+        <Style Selector="ScrollBar[IsExpanded=true] /template/ Grid#Root">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ScrollBar[IsExpanded=true] /template/ Rectangle#TrackRect">
+            <Setter Property="Opacity" Value="0"/>
+        </Style>
+        <Style Selector="ScrollBar[IsExpanded=true] /template/ RepeatButton">
+            <Setter Property="Opacity" Value="0"/>
+        </Style>
+        <Style Selector="ScrollBar:vertical[IsExpanded=true] /template/ Thumb">
+            <Setter Property="RenderTransform" Value="{StaticResource AppThinVerticalScrollThumbTransform}"/>
+            <Setter Property="Background" Value="{DynamicResource ScrollBarPanningThumbBackground}"/>
+        </Style>
+        <Style Selector="ScrollBar:horizontal[IsExpanded=true] /template/ Thumb">
+            <Setter Property="RenderTransform" Value="{StaticResource AppThinHorizontalScrollThumbTransform}"/>
+            <Setter Property="Background" Value="{DynamicResource ScrollBarPanningThumbBackground}"/>
+        </Style>
+    </Application.Styles>
+</Application>
