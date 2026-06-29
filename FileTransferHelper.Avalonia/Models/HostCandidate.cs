@@ -6,7 +6,8 @@ public sealed record HostCandidate(
     string Source,
     string Username = "",
     bool UseKey = false,
-    string KeyPath = "")
+    string KeyPath = "",
+    string HardwareId = "")
 {
     public string Label => $"{Name} ({Address})";
 }

@@ -25,8 +25,11 @@
         <Geometry x:Key="RemoteFileIcon">M 8,4 L 24,4 L 32,12 L 32,36 C 32,37.1 31.1,38 30,38 L 8,38 C 6.9,38 6,37.1 6,36 L 6,6 C 6,4.9 6.9,4 8,4 Z</Geometry>
         <Geometry x:Key="RemoteFileFoldIcon">M 24,4 L 24,12 L 32,12 Z</Geometry>
         <Geometry x:Key="TreeChevronIcon">M 0,0 L 4,4 L 0,8</Geometry>
+        <Geometry x:Key="ConnectionChevronIcon">M 1,2 L 14,11 L 27,2</Geometry>
+        <Geometry x:Key="EyeIcon">M 1,8 C 4,3 8,1.5 12,1.5 C 16,1.5 20,3 23,8 C 20,13 16,14.5 12,14.5 C 8,14.5 4,13 1,8 Z M 12,5 C 10.3,5 9,6.3 9,8 C 9,9.7 10.3,11 12,11 C 13.7,11 15,9.7 15,8 C 15,6.3 13.7,5 12,5 Z</Geometry>
         <Geometry x:Key="TreeFolderIcon">M 0,4 L 0,12 L 12,12 L 12,6 L 7,6 L 5,4 Z</Geometry>
         <Geometry x:Key="TreeFolderOpenIcon">M 0,7 L 0,12 L 12,12 L 12,9 L 2,9 C 0.8,9 0,8.4 0,7 Z M 1,5 L 5,5 L 6,4 L 11,4 C 12,4 12,5.2 12,6 L 12,7 L 0,7 L 1,5 Z</Geometry>
+        <Geometry x:Key="CancelTransferIcon">M 4,4 L 12,12 M 12,4 L 4,12</Geometry>
         <SolidColorBrush x:Key="TreeChevronBrush" Color="#B8B8B8"/>
         <SolidColorBrush x:Key="TreeChevronHoverBrush" Color="#666666"/>
 
@@ -71,6 +74,75 @@
                 <Setter Property="RenderTransform">
                     <RotateTransform Angle="90"/>
                 </Setter>
+            </Style>
+        </ControlTheme>
+
+        <ControlTheme x:Key="ConnectionPanelChevron" TargetType="ToggleButton">
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource TreeChevronBrush}"/>
+            <Setter Property="Template">
+                <ControlTemplate TargetType="ToggleButton">
+                    <Panel Background="Transparent">
+                        <Viewbox x:Name="ChevronBox"
+                                 Width="30"
+                                 Height="13"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 RenderTransformOrigin="50%,50%">
+                            <Path Data="{StaticResource ConnectionChevronIcon}"
+                                  Stroke="{TemplateBinding Foreground}"
+                                  StrokeThickness="2.4"
+                                  StrokeLineCap="Round"
+                                  StrokeJoin="Round"
+                                  Fill="Transparent"/>
+                        </Viewbox>
+                    </Panel>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Foreground" Value="{StaticResource TreeChevronHoverBrush}"/>
+            </Style>
+            <Style Selector="^:checked /template/ Viewbox#ChevronBox">
+                <Setter Property="RenderTransform">
+                    <RotateTransform Angle="180"/>
+                </Setter>
+            </Style>
+        </ControlTheme>
+
+        <ControlTheme x:Key="ConnectionColumnEyeToggle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <ControlTemplate TargetType="ToggleButton">
+                    <Panel Background="Transparent">
+                        <Viewbox Width="14"
+                                 Height="9"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center">
+                            <Path Data="{StaticResource EyeIcon}"
+                                  Fill="{DynamicResource SystemControlForegroundBaseHighBrush}"
+                                  Stretch="Uniform"
+                                  Opacity="0.85"/>
+                        </Viewbox>
+                    </Panel>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:checked /template/ Path">
+                <Setter Property="Opacity" Value="1"/>
+            </Style>
+            <Style Selector="^:not(:checked) /template/ Path">
+                <Setter Property="Opacity" Value="0.35"/>
             </Style>
         </ControlTheme>
 
@@ -119,123 +191,328 @@
                 </ControlTemplate>
             </Setter>
             <Style Selector="^:selected /template/ Border#PART_LayoutRoot">
-                <Setter Property="Background" Value="{DynamicResource SystemHighlightBrush}"/>
+                <Setter Property="Background" Value="{DynamicResource TreeViewItemBackgroundSelected}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource TreeViewItemBorderBrushSelected}"/>
             </Style>
             <Style Selector="^:selected /template/ ContentPresenter#PART_HeaderPresenter">
-                <Setter Property="Foreground" Value="{DynamicResource SystemHighlightColorBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource TreeViewItemForegroundSelected}"/>
+            </Style>
+            <Style Selector="^:selected:pointerover /template/ Border#PART_LayoutRoot">
+                <Setter Property="Background" Value="{DynamicResource TreeViewItemBackgroundSelectedPointerOver}"/>
             </Style>
             <Style Selector="^ /template/ Border#PART_LayoutRoot:pointerover">
-                <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}"/>
+                <Setter Property="Background" Value="{DynamicResource TreeViewItemBackgroundPointerOver}"/>
             </Style>
         </ControlTheme>
     </Window.Resources>
 
+    <Window.Styles>
+        <Style Selector="TextBox.connection-credential">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+    </Window.Styles>
+
     <Grid Margin="14"
-          RowDefinitions="Auto,*,Auto"
+          RowDefinitions="Auto,*"
           RowSpacing="8">
         <Border Grid.Row="0"
                 x:Name="ConnectionPanel"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="8,6">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto"
-                  ColumnSpacing="8">
-                <TextBlock Grid.Column="0"
-                           Text="Raspberry Pi"
-                           FontWeight="SemiBold"
-                           FontSize="12"
-                           VerticalAlignment="Center"/>
-                <ComboBox Grid.Column="1"
-                          MinWidth="160"
-                          ItemsSource="{Binding Hosts}"
-                          SelectedItem="{Binding SelectedHost, Mode=TwoWay}"
-                          PlaceholderText="Ingen enhet hittad"
-                          VerticalAlignment="Center">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:HostCandidate">
-                            <TextBlock Text="{Binding Label}"/>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-                <TextBlock Grid.Column="2"
-                           Text="Användare"
-                           FontSize="11"
-                           VerticalAlignment="Center"
-                           IsVisible="{Binding ShowConnectionControls}"/>
-                <TextBox Grid.Column="3"
-                         Width="110"
-                         FontSize="11"
-                         VerticalAlignment="Center"
-                         IsVisible="{Binding ShowConnectionControls}"
-                         Text="{Binding Username, Mode=TwoWay}"/>
-                <TextBlock Grid.Column="4"
-                           Text="Lösenord"
-                           FontSize="11"
-                           VerticalAlignment="Center"
-                           IsVisible="{Binding ShowConnectionControls}"/>
-                <TextBox Grid.Column="5"
-                         Width="130"
-                         FontSize="11"
-                         PasswordChar="*"
-                         VerticalAlignment="Center"
-                         IsVisible="{Binding ShowConnectionControls}"
-                         Text="{Binding Password, Mode=TwoWay}"
-                         KeyDown="PasswordBox_KeyDown"/>
-                <Button Grid.Column="6"
-                        Content="Anslut"
-                        MinWidth="72"
-                        VerticalAlignment="Center"
-                        IsVisible="{Binding ShowConnectionControls}"
-                        Command="{Binding ConnectCommand}"
-                        IsEnabled="{Binding !IsConnecting}"/>
-                <TextBlock Grid.Column="7"
-                           MinWidth="140"
-                           FontSize="11"
-                           VerticalAlignment="Center"
-                           TextTrimming="CharacterEllipsis"
-                           Text="{Binding ConnectionStatusText}"/>
+                IsVisible="{Binding IsConnectionPanelExpanded}"
+                BorderThickness="0"
+                Padding="0,0,0,2">
+            <Grid>
+                <StackPanel Spacing="6">
+                    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            Padding="6"
+                            Background="{DynamicResource SystemControlChromeMediumLowBrush}">
+                        <Grid HorizontalAlignment="Center"
+                              RowDefinitions="Auto,*"
+                              RowSpacing="2"
+                              IsSharedSizeScope="True">
+                            <Grid Grid.Row="0"
+                                  ColumnSpacing="10"
+                                  MinHeight="26"
+                                  VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="ConnDevice"/>
+                                    <ColumnDefinition Width="Auto" MinWidth="110" SharedSizeGroup="ConnAddress"/>
+                                    <ColumnDefinition Width="Auto" MinWidth="72" SharedSizeGroup="ConnStatus"/>
+                                    <ColumnDefinition Width="Auto" MinWidth="104" SharedSizeGroup="ConnUser"/>
+                                    <ColumnDefinition Width="Auto" MinWidth="104" SharedSizeGroup="ConnPass"/>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="ConnAction"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0"
+                                            Orientation="Horizontal"
+                                            Spacing="5"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                    <ToggleButton Theme="{StaticResource ConnectionColumnEyeToggle}"
+                                                  IsChecked="{Binding IsConnectionSecretsVisible, Mode=TwoWay}"
+                                                  ToolTip.Tip="Visa/dölj adresser, användare och lösenord"/>
+                                    <TextBlock Text="Enheter"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            Spacing="5"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="Adress"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"/>
+                                    <ToggleButton Theme="{StaticResource ConnectionColumnEyeToggle}"
+                                                  IsChecked="{Binding IsConnectionAddressVisible, Mode=TwoWay}"
+                                                  ToolTip.Tip="Visa/dölj adresser"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="2"
+                                           Text="Status"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="3"
+                                            Orientation="Horizontal"
+                                            Spacing="5"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="Användare"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"/>
+                                    <ToggleButton Theme="{StaticResource ConnectionColumnEyeToggle}"
+                                                  IsChecked="{Binding IsConnectionUsernameVisible, Mode=TwoWay}"
+                                                  ToolTip.Tip="Visa/dölj användare"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4"
+                                            Orientation="Horizontal"
+                                            Spacing="5"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="Lösenord"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"/>
+                                    <ToggleButton Theme="{StaticResource ConnectionColumnEyeToggle}"
+                                                  IsChecked="{Binding IsConnectionPasswordVisible, Mode=TwoWay}"
+                                                  ToolTip.Tip="Visa/dölj lösenord"/>
+                                </StackPanel>
+                                <Border Grid.Column="5"
+                                        MinWidth="64"
+                                        Height="1"
+                                        Opacity="0"/>
+                            </Grid>
+                            <ItemsControl Grid.Row="1"
+                                          HorizontalAlignment="Center"
+                                          ItemsSource="{Binding ConnectionManagerEntries}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:ConnectionManagerEntry">
+                                        <Grid ColumnSpacing="10"
+                                              MinHeight="26"
+                                              VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ConnDevice"/>
+                                                <ColumnDefinition Width="Auto" MinWidth="110" SharedSizeGroup="ConnAddress"/>
+                                                <ColumnDefinition Width="Auto" MinWidth="72" SharedSizeGroup="ConnStatus"/>
+                                                <ColumnDefinition Width="Auto" MinWidth="104" SharedSizeGroup="ConnUser"/>
+                                                <ColumnDefinition Width="Auto" MinWidth="104" SharedSizeGroup="ConnPass"/>
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ConnAction"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0"
+                                                        Orientation="Horizontal"
+                                                        Spacing="5"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center">
+                                                <Border Width="18"
+                                                        Height="18"
+                                                        IsHitTestVisible="False"/>
+                                                <TextBlock FontSize="11"
+                                                           VerticalAlignment="Center"
+                                                           TextAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding Name}"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       FontSize="11"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       TextAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       IsVisible="{Binding ShowVisibleAddress}"
+                                                       Text="{Binding Address}"/>
+                                            <TextBlock Grid.Column="1"
+                                                       FontSize="11"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       TextAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       IsVisible="{Binding ShowMaskedAddress}"
+                                                       Text="{Binding MaskedAddress}"/>
+                                            <StackPanel Grid.Column="2"
+                                                        Orientation="Horizontal"
+                                                        Spacing="5"
+                                                        VerticalAlignment="Center"
+                                                        HorizontalAlignment="Center">
+                                                <Border Width="8"
+                                                        Height="8"
+                                                        CornerRadius="4"
+                                                        Background="{Binding StatusBrush}"/>
+                                                <TextBlock FontSize="11"
+                                                           VerticalAlignment="Center"
+                                                           TextAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding Status}"/>
+                                            </StackPanel>
+                                            <Grid Grid.Column="3"
+                                                  Width="104"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Center">
+                                                <TextBlock IsVisible="{Binding ShowVisibleReadOnlyUsername}"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"
+                                                           TextAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding UsernameInput}"/>
+                                                <TextBlock IsVisible="{Binding ShowMaskedReadOnlyUsername}"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"
+                                                           TextAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding MaskedUsername}"/>
+                                                <TextBox IsVisible="{Binding ShowVisibleUsernameInput}"
+                                                         Classes="connection-credential"
+                                                         HorizontalAlignment="Stretch"
+                                                         Text="{Binding UsernameInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </Grid>
+                                            <Grid Grid.Column="4"
+                                                  Width="104"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Center">
+                                                <TextBlock IsVisible="{Binding ShowVisibleReadOnlyPassword}"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"
+                                                           TextAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding PasswordInput}"/>
+                                                <TextBlock IsVisible="{Binding ShowMaskedReadOnlyPassword}"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"
+                                                           TextAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding MaskedPassword}"/>
+                                                <TextBox IsVisible="{Binding ShowVisiblePasswordInput}"
+                                                         Classes="connection-credential"
+                                                         HorizontalAlignment="Stretch"
+                                                         Text="{Binding PasswordInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBox IsVisible="{Binding ShowMaskedPasswordInput}"
+                                                         Classes="connection-credential"
+                                                         HorizontalAlignment="Stretch"
+                                                         PasswordChar="*"
+                                                         Text="{Binding PasswordInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </Grid>
+                                            <Button Grid.Column="5"
+                                                    Content="Anslut"
+                                                    MinWidth="64"
+                                                    FontSize="11"
+                                                    Padding="6,1"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    IsVisible="{Binding ShowConnectAction}"
+                                                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ConnectConnectionEntryCommand}"
+                                                    CommandParameter="{Binding}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </Border>
+                </StackPanel>
             </Grid>
         </Border>
 
         <Grid Grid.Row="1"
               x:Name="MainPanelsGrid"
-              ColumnSpacing="4">
+              RowDefinitions="*,Auto"
+              ColumnSpacing="0"
+              RowSpacing="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="{Binding LocalPanelColumnWidth}" MinWidth="280"/>
-                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="30"/>
                 <ColumnDefinition Width="*" MinWidth="280"/>
             </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0"
+        <Border Grid.Row="0"
+                Grid.Column="0"
+                Margin="0,0,4,0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 BorderThickness="1"
                 CornerRadius="4"
                 Padding="6">
             <Grid RowDefinitions="Auto,*"
                   RowSpacing="4">
-                <TextBlock Grid.Row="0"
-                           FontWeight="SemiBold"
-                           FontSize="12"
-                           Text="Filer från den här datorn"/>
-                <Grid Grid.Row="1"
+                <Grid Grid.Row="0"
+                      Grid.RowSpan="2"
                       RowDefinitions="Auto,*"
                       RowSpacing="4">
-                    <Border Grid.Row="0"
-                            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                            BorderThickness="1"
-                            CornerRadius="3"
-                            Padding="4,2">
-                        <TextBox x:Name="LocalPathBox"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 FontSize="11"
-                                 MinHeight="0"
-                                 Padding="2,1"
-                                 Watermark="Sökväg — tryck Enter för att öppna"
-                                 Text="{Binding LocalPath, Mode=TwoWay}"
-                                 KeyDown="LocalPathBox_KeyDown"/>
-                    </Border>
+                    <Grid Grid.Row="0"
+                          ColumnDefinitions="Auto,Auto,*"
+                          ColumnSpacing="4">
+                        <Border Grid.Column="0"
+                                MinWidth="128"
+                                Background="{DynamicResource SystemControlChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Padding="6,2">
+                            <TextBlock FontSize="11"
+                                       FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       Text="{Binding LeftStorageStatus}"/>
+                        </Border>
+                        <ComboBox Grid.Column="1"
+                                  FontSize="11"
+                                  MinHeight="0"
+                                  ItemsSource="{Binding ConnectedDevices}"
+                                  SelectedItem="{Binding SelectedLeftDevice, Mode=TwoWay}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:ConnectedDevice">
+                                    <TextBlock Text="{Binding Label}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Border Grid.Column="2"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Padding="4,2">
+                            <TextBox x:Name="LocalPathBox"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     FontSize="11"
+                                     MinHeight="0"
+                                     Padding="2,1"
+                                     Watermark="Sökväg — tryck Enter för att öppna"
+                                     Text="{Binding LocalPath, Mode=TwoWay}"
+                                     KeyDown="LocalPathBox_KeyDown"/>
+                        </Border>
+                    </Grid>
 
                     <Grid Grid.Row="1"
                           x:Name="LocalExplorerGrid"
@@ -249,21 +526,18 @@
                         <Grid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Öppna"
-                                          Command="{Binding OpenSelectedLocalEntryCommand}"/>
+                                          Command="{Binding OpenLocalInExplorerCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Kopiera och klistra in"
+                                          Command="{Binding CopySelectedLocalToRemoteCommand}"/>
+                                <MenuItem Header="Klipp ut och klistra in"
+                                          Command="{Binding MoveSelectedLocalToRemoteCommand}"/>
                                 <Separator/>
                                 <MenuItem Header="Ny mapp"
                                           Command="{Binding CreateLocalFolderCommand}"/>
                                 <MenuItem Header="Ta bort"
                                           Command="{Binding DeleteSelectedLocalItemCommand}"
                                           IsEnabled="{Binding !IsDeletingLocalItem}"/>
-                                <Separator/>
-                                <MenuItem Header="Uppdatera"
-                                          Command="{Binding RefreshLocalDirsCommand}"/>
-                                <Separator/>
-                                <MenuItem Header="Hem"
-                                          Command="{Binding LocalHomeCommand}"/>
-                                <MenuItem Header="Upp en nivå"
-                                          Command="{Binding LocalUpCommand}"/>
                             </ContextMenu>
                         </Grid.ContextMenu>
 
@@ -272,17 +546,18 @@
                                 ClipToBounds="True"
                                 Padding="0,0,4,0"
                                 Background="{DynamicResource SystemControlChromeMediumLowBrush}">
-                            <TreeView x:Name="LocalTree"
-                                      HorizontalAlignment="Stretch"
-                                      VerticalAlignment="Stretch"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                      ItemsSource="{Binding LocalTreeRoots}"
-                                      SelectedItem="{Binding SelectedLocalTreeNode, Mode=TwoWay}"
-                                      SelectedItems="{Binding SelectedLocalTreeNodes, Mode=TwoWay}"
-                                      SelectionMode="Multiple"
-                                      ItemContainerTheme="{StaticResource CompactRemoteTreeViewItem}"
-                                      Tapped="LocalTreeItem_Tapped">
+                            <Grid>
+                                <TreeView x:Name="LocalTree"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                          ItemsSource="{Binding LocalTreeRoots}"
+                                          SelectedItem="{Binding SelectedLocalTreeNode, Mode=OneWay}"
+                                          SelectedItems="{Binding SelectedLocalTreeNodes, Mode=TwoWay}"
+                                          SelectionMode="Multiple"
+                                          ItemContainerTheme="{StaticResource CompactRemoteTreeViewItem}"
+                                          Tapped="LocalTreeItem_Tapped">
                             <TreeView.Styles>
                                 <Style Selector="TreeViewItem" x:DataType="models:LocalTreeNode">
                                     <Setter Property="MinHeight" Value="18"/>
@@ -317,6 +592,13 @@
                                 </TreeDataTemplate>
                             </TreeView.ItemTemplate>
                             </TreeView>
+                                <Canvas x:Name="LocalTreeMarqueeCanvas"
+                                        Panel.ZIndex="1"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        ClipToBounds="True"
+                                        IsHitTestVisible="False"/>
+                            </Grid>
                         </Border>
 
                         <GridSplitter x:Name="LocalTreeSplitter"
@@ -332,70 +614,94 @@
                                 ClipToBounds="True"
                                 Padding="6,0,0,0"
                                 Background="{DynamicResource SystemControlChromeMediumLowBrush}">
-                            <ListBox x:Name="LocalList"
-                                     ItemsSource="{Binding LocalEntries}"
-                                     SelectedItem="{Binding SelectedLocalEntry, Mode=TwoWay}"
-                                     SelectionMode="Multiple"
-                                     Background="Transparent"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     ScrollViewer.VerticalScrollBarVisibility="Auto">
-                            <ListBox.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <VirtualizingStackPanel/>
-                                </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
-                            <ListBox.Styles>
-                                <Style Selector="ListBoxItem">
-                                    <Setter Property="Padding" Value="2,0"/>
-                                    <Setter Property="Margin" Value="0"/>
-                                    <Setter Property="MinHeight" Value="18"/>
-                                    <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                </Style>
-                                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                                    <Setter Property="Background" Value="{DynamicResource SystemHighlightBrush}"/>
-                                    <Setter Property="CornerRadius" Value="2"/>
-                                </Style>
-                                <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
-                                    <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}"/>
-                                    <Setter Property="CornerRadius" Value="2"/>
-                                </Style>
-                            </ListBox.Styles>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="models:LocalEntry">
-                                    <Grid ColumnDefinitions="Auto,*"
-                                          Height="18"
-                                          Margin="1,0"
-                                          ToolTip.Tip="{Binding Name}">
-                                        <Panel Grid.Column="0"
-                                               Width="14"
-                                               Height="14"
-                                               Margin="0,0,5,0"
-                                               VerticalAlignment="Center">
-                                            <Path IsVisible="{Binding IsDirectory}"
-                                                  Data="{StaticResource RemoteFolderIcon}"
-                                                  Fill="#F4B740"
-                                                  Stretch="Uniform"/>
-                                            <Panel IsVisible="{Binding !IsDirectory}">
-                                                <Path Data="{StaticResource RemoteFileIcon}"
-                                                      Fill="#F5F5F5"
-                                                      Stroke="#9E9E9E"
-                                                      StrokeThickness="0.8"
-                                                      Stretch="Uniform"/>
-                                                <Path Data="{StaticResource RemoteFileFoldIcon}"
-                                                      Fill="#BDBDBD"
-                                                      Stretch="Uniform"/>
-                                            </Panel>
-                                        </Panel>
-                                        <TextBlock Grid.Column="1"
-                                                   VerticalAlignment="Center"
-                                                   FontSize="11"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Text="{Binding Name}"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                            <Grid>
+                                <ListBox x:Name="LocalList"
+                                         ItemsSource="{Binding LocalEntries}"
+                                         SelectedItem="{Binding SelectedLocalEntry, Mode=TwoWay}"
+                                         SelectedItems="{Binding SelectedLocalEntries, Mode=TwoWay}"
+                                         SelectionMode="Multiple"
+                                         Background="Transparent"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.Styles>
+                                    <Style Selector="ListBoxItem">
+                                        <Setter Property="Padding" Value="2,0"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="MinHeight" Value="18"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundSelected}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ListBoxItemForegroundSelected}"/>
+                                        <Setter Property="CornerRadius" Value="2"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected">
+                                        <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundSelected}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ListBoxItemForegroundSelected}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected Border.selection-surface">
+                                        <Setter Property="Background" Value="#A00078D7"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem.marquee-selected Border.selection-surface">
+                                        <Setter Property="Background" Value="#A00078D7"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundPointerOver}"/>
+                                        <Setter Property="CornerRadius" Value="2"/>
+                                    </Style>
+                                </ListBox.Styles>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:LocalEntry">
+                                        <Border Classes="selection-surface"
+                                                Background="Transparent"
+                                                CornerRadius="2"
+                                                Height="18"
+                                                Margin="1,0"
+                                                ToolTip.Tip="{Binding Name}">
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <Panel Grid.Column="0"
+                                                       Width="14"
+                                                       Height="14"
+                                                       Margin="0,0,5,0"
+                                                       VerticalAlignment="Center">
+                                                    <Path IsVisible="{Binding IsDirectory}"
+                                                          Data="{StaticResource RemoteFolderIcon}"
+                                                          Fill="#F4B740"
+                                                          Stretch="Uniform"/>
+                                                    <Panel IsVisible="{Binding !IsDirectory}">
+                                                        <Path Data="{StaticResource RemoteFileIcon}"
+                                                              Fill="#F5F5F5"
+                                                              Stroke="#9E9E9E"
+                                                              StrokeThickness="0.8"
+                                                              Stretch="Uniform"/>
+                                                        <Path Data="{StaticResource RemoteFileFoldIcon}"
+                                                              Fill="#BDBDBD"
+                                                              Stretch="Uniform"/>
+                                                    </Panel>
+                                                </Panel>
+                                                <TextBlock Grid.Column="1"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="11"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding Name}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                                <Canvas x:Name="LocalListMarqueeCanvas"
+                                        Panel.ZIndex="1"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        ClipToBounds="True"
+                                        IsHitTestVisible="False"/>
+                            </Grid>
                         </Border>
                     </Grid>
                 </Grid>
@@ -403,15 +709,39 @@
         </Border>
 
         <GridSplitter x:Name="MainPanelSplitter"
+                      Grid.Row="0"
+                      Grid.RowSpan="2"
                       Grid.Column="1"
                       ZIndex="2"
-                      Width="1"
-                      HorizontalAlignment="Center"
+                      Width="30"
+                      HorizontalAlignment="Stretch"
                       ResizeDirection="Columns"
-                      Background="#C8C8C8"
+                      Background="Transparent"
                       DragCompleted="MainPanelSplitter_DragCompleted"/>
 
-        <Border Grid.Column="2"
+        <Border Grid.Row="0"
+                Grid.RowSpan="2"
+                Grid.Column="1"
+                ZIndex="1"
+                Width="8"
+                HorizontalAlignment="Center"
+                Margin="0,38,0,0"
+                Background="#C8C8C8"
+                IsHitTestVisible="False"/>
+
+        <ToggleButton Grid.Row="0"
+                      Grid.Column="1"
+                      ZIndex="3"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Top"
+                      Margin="0,8,0,0"
+                      Theme="{StaticResource ConnectionPanelChevron}"
+                      IsChecked="{Binding IsConnectionPanelExpanded, Mode=TwoWay}"
+                      ToolTip.Tip="Visa/dölj anslutningar"/>
+
+        <Border Grid.Row="0"
+                Grid.Column="2"
+                Margin="4,0,0,0"
                 x:Name="RemotePanel"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 BorderThickness="1"
@@ -419,29 +749,54 @@
                 Padding="6">
             <Grid RowDefinitions="Auto,*"
                   RowSpacing="4">
-                <TextBlock Grid.Row="0"
-                           FontWeight="SemiBold"
-                           FontSize="12"
-                           Text="Destination på Raspberry Pi"/>
-                <Grid Grid.Row="1"
+                <Grid Grid.Row="0"
+                      Grid.RowSpan="2"
                       RowDefinitions="Auto,*"
                       RowSpacing="4">
-                    <Border Grid.Row="0"
-                            x:Name="RemotePathBorder"
-                            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                            BorderThickness="1"
-                            CornerRadius="3"
-                            Padding="4,2">
-                        <TextBox x:Name="RemotePathBox"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 FontSize="11"
-                                 MinHeight="0"
-                                 Padding="2,1"
-                                 Watermark="Sökväg — tryck Enter för att öppna"
-                                 Text="{Binding RemotePath, Mode=TwoWay}"
-                                 KeyDown="RemotePathBox_KeyDown"/>
-                    </Border>
+                    <Grid Grid.Row="0"
+                          ColumnDefinitions="Auto,Auto,*"
+                          ColumnSpacing="4">
+                        <Border Grid.Column="0"
+                                MinWidth="128"
+                                Background="{DynamicResource SystemControlChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Padding="6,2">
+                            <TextBlock FontSize="11"
+                                       FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       Text="{Binding RightStorageStatus}"/>
+                        </Border>
+                        <ComboBox Grid.Column="1"
+                                  FontSize="11"
+                                  MinHeight="0"
+                                  ItemsSource="{Binding ConnectedDevices}"
+                                  SelectedItem="{Binding SelectedRightDevice, Mode=TwoWay}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:ConnectedDevice">
+                                    <TextBlock Text="{Binding Label}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Border Grid.Column="2"
+                                x:Name="RemotePathBorder"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Padding="4,2">
+                            <TextBox x:Name="RemotePathBox"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     FontSize="11"
+                                     MinHeight="0"
+                                     Padding="2,1"
+                                     Watermark="Sökväg — tryck Enter för att öppna"
+                                     Text="{Binding RemotePath, Mode=TwoWay}"
+                                     KeyDown="RemotePathBox_KeyDown"/>
+                        </Border>
+                    </Grid>
 
                     <Grid Grid.Row="1"
                           x:Name="RemoteExplorerGrid"
@@ -455,21 +810,18 @@
                         <Grid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Öppna"
-                                          Command="{Binding OpenSelectedRemoteEntryCommand}"/>
+                                          Command="{Binding OpenRemoteInExplorerCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Kopiera och klistra in"
+                                          Command="{Binding CopySelectedRemoteToLocalCommand}"/>
+                                <MenuItem Header="Klipp ut och klistra in"
+                                          Command="{Binding MoveSelectedRemoteToLocalCommand}"/>
                                 <Separator/>
                                 <MenuItem Header="Ny mapp"
                                           Command="{Binding CreateRemoteFolderCommand}"/>
                                 <MenuItem Header="Ta bort"
                                           Command="{Binding DeleteSelectedRemoteItemCommand}"
                                           IsEnabled="{Binding !IsDeletingRemoteItem}"/>
-                                <Separator/>
-                                <MenuItem Header="Uppdatera"
-                                          Command="{Binding RefreshRemoteDirsCommand}"/>
-                                <Separator/>
-                                <MenuItem Header="Hem"
-                                          Command="{Binding RemoteHomeCommand}"/>
-                                <MenuItem Header="Upp en nivå"
-                                          Command="{Binding RemoteUpCommand}"/>
                                 <Separator/>
                                 <MenuItem Header="Ta bort dubbletter"
                                           Command="{Binding FindRemoteDuplicatesCommand}"
@@ -482,17 +834,18 @@
                                 ClipToBounds="True"
                                 Padding="0,0,4,0"
                                 Background="{DynamicResource SystemControlChromeMediumLowBrush}">
-                            <TreeView x:Name="RemoteTree"
-                                      HorizontalAlignment="Stretch"
-                                      VerticalAlignment="Stretch"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                      ItemsSource="{Binding RemoteTreeRoots}"
-                                      SelectedItem="{Binding SelectedRemoteTreeNode, Mode=TwoWay}"
-                                      SelectedItems="{Binding SelectedRemoteTreeNodes, Mode=TwoWay}"
-                                      SelectionMode="Multiple"
-                                      ItemContainerTheme="{StaticResource CompactRemoteTreeViewItem}"
-                                      Tapped="RemoteTreeItem_Tapped">
+                            <Grid>
+                                <TreeView x:Name="RemoteTree"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                          ItemsSource="{Binding RemoteTreeRoots}"
+                                          SelectedItem="{Binding SelectedRemoteTreeNode, Mode=OneWay}"
+                                          SelectedItems="{Binding SelectedRemoteTreeNodes, Mode=TwoWay}"
+                                          SelectionMode="Multiple"
+                                          ItemContainerTheme="{StaticResource CompactRemoteTreeViewItem}"
+                                          Tapped="RemoteTreeItem_Tapped">
                             <TreeView.Styles>
                                 <Style Selector="TreeViewItem" x:DataType="models:RemoteTreeNode">
                                     <Setter Property="MinHeight" Value="18"/>
@@ -539,6 +892,13 @@
                                 </TreeDataTemplate>
                             </TreeView.ItemTemplate>
                             </TreeView>
+                                <Canvas x:Name="RemoteTreeMarqueeCanvas"
+                                        Panel.ZIndex="1"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        ClipToBounds="True"
+                                        IsHitTestVisible="False"/>
+                            </Grid>
                         </Border>
 
                         <GridSplitter x:Name="RemoteTreeSplitter"
@@ -554,87 +914,150 @@
                                 ClipToBounds="True"
                                 Padding="6,0,0,0"
                                 Background="{DynamicResource SystemControlChromeMediumLowBrush}">
-                            <ListBox x:Name="RemoteList"
-                                     ItemsSource="{Binding RemoteEntries}"
-                                     SelectedItem="{Binding SelectedRemoteEntry, Mode=TwoWay}"
-                                     Background="Transparent"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     ScrollViewer.VerticalScrollBarVisibility="Auto">
-                            <ListBox.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <VirtualizingStackPanel/>
-                                </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
-                            <ListBox.Styles>
-                                <Style Selector="ListBoxItem">
-                                    <Setter Property="Padding" Value="2,0"/>
-                                    <Setter Property="Margin" Value="0"/>
-                                    <Setter Property="MinHeight" Value="18"/>
-                                    <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                </Style>
-                                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                                    <Setter Property="Background" Value="{DynamicResource SystemHighlightBrush}"/>
-                                    <Setter Property="CornerRadius" Value="2"/>
-                                </Style>
-                                <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
-                                    <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}"/>
-                                    <Setter Property="CornerRadius" Value="2"/>
-                                </Style>
-                                <Style Selector="ListBoxItem.drop-target /template/ ContentPresenter">
-                                    <Setter Property="Background" Value="#55F4B740"/>
-                                    <Setter Property="CornerRadius" Value="2"/>
-                                </Style>
-                            </ListBox.Styles>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="models:RemoteEntry">
-                                    <Grid ColumnDefinitions="Auto,*"
-                                          Height="18"
-                                          Margin="1,0"
-                                          ToolTip.Tip="{Binding Name}"
-                                          DoubleTapped="RemoteItem_DoubleTapped">
-                                        <Panel Grid.Column="0"
-                                               Width="14"
-                                               Height="14"
-                                               Margin="0,0,5,0"
-                                               VerticalAlignment="Center">
-                                            <Path IsVisible="{Binding ShowClosedFolder}"
-                                                  Data="{StaticResource RemoteFolderIcon}"
-                                                  Fill="#F4B740"
-                                                  Stretch="Uniform"/>
-                                            <Path IsVisible="{Binding ShowOpenFolder}"
-                                                  Data="{StaticResource RemoteFolderOpenIcon}"
-                                                  Fill="#F4B740"
-                                                  Stretch="Uniform"/>
-                                            <Panel IsVisible="{Binding !IsDirectory}">
-                                                <Path Data="{StaticResource RemoteFileIcon}"
-                                                      Fill="#F5F5F5"
-                                                      Stroke="#9E9E9E"
-                                                      StrokeThickness="0.8"
-                                                      Stretch="Uniform"/>
-                                                <Path Data="{StaticResource RemoteFileFoldIcon}"
-                                                      Fill="#BDBDBD"
-                                                      Stretch="Uniform"/>
-                                            </Panel>
-                                        </Panel>
-                                        <TextBlock Grid.Column="1"
-                                                   VerticalAlignment="Center"
-                                                   FontSize="11"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Text="{Binding Name}"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                            <Grid>
+                                <ListBox x:Name="RemoteList"
+                                         ItemsSource="{Binding RemoteEntries}"
+                                         SelectedItem="{Binding SelectedRemoteEntry, Mode=TwoWay}"
+                                         SelectedItems="{Binding SelectedRemoteEntries, Mode=TwoWay}"
+                                         SelectionMode="Multiple"
+                                         Background="Transparent"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.Styles>
+                                    <Style Selector="ListBoxItem">
+                                        <Setter Property="Padding" Value="2,0"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="MinHeight" Value="18"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundSelected}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ListBoxItemForegroundSelected}"/>
+                                        <Setter Property="CornerRadius" Value="2"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected">
+                                        <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundSelected}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ListBoxItemForegroundSelected}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected Border.selection-surface">
+                                        <Setter Property="Background" Value="#A00078D7"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem.marquee-selected Border.selection-surface">
+                                        <Setter Property="Background" Value="#A00078D7"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundPointerOver}"/>
+                                        <Setter Property="CornerRadius" Value="2"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem.drop-target /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="#55F4B740"/>
+                                        <Setter Property="CornerRadius" Value="2"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem.drop-target">
+                                        <Setter Property="Background" Value="#66F4B740"/>
+                                    </Style>
+                                </ListBox.Styles>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:RemoteEntry">
+                                        <Border Classes="selection-surface"
+                                                Background="Transparent"
+                                                CornerRadius="2"
+                                                Height="18"
+                                                Margin="1,0"
+                                                ToolTip.Tip="{Binding Name}"
+                                                DoubleTapped="RemoteItem_DoubleTapped">
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <Panel Grid.Column="0"
+                                                       Width="14"
+                                                       Height="14"
+                                                       Margin="0,0,5,0"
+                                                       VerticalAlignment="Center">
+                                                    <Path IsVisible="{Binding ShowClosedFolder}"
+                                                          Data="{StaticResource RemoteFolderIcon}"
+                                                          Fill="#F4B740"
+                                                          Stretch="Uniform"/>
+                                                    <Path IsVisible="{Binding ShowOpenFolder}"
+                                                          Data="{StaticResource RemoteFolderOpenIcon}"
+                                                          Fill="#F4B740"
+                                                          Stretch="Uniform"/>
+                                                    <Panel IsVisible="{Binding !IsDirectory}">
+                                                        <Path Data="{StaticResource RemoteFileIcon}"
+                                                              Fill="#F5F5F5"
+                                                              Stroke="#9E9E9E"
+                                                              StrokeThickness="0.8"
+                                                              Stretch="Uniform"/>
+                                                        <Path Data="{StaticResource RemoteFileFoldIcon}"
+                                                              Fill="#BDBDBD"
+                                                              Stretch="Uniform"/>
+                                                    </Panel>
+                                                </Panel>
+                                                <TextBlock Grid.Column="1"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="11"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding Name}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                                <Canvas x:Name="RemoteListMarqueeCanvas"
+                                        Panel.ZIndex="1"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        ClipToBounds="True"
+                                        IsHitTestVisible="False"/>
+                            </Grid>
                         </Border>
                     </Grid>
                 </Grid>
             </Grid>
         </Border>
-        </Grid>
 
-        <Border Grid.Row="2"
+        <Border Grid.Row="1"
+                Grid.Column="0"
                 MinHeight="32"
+                Margin="0,0,4,0"
+                IsVisible="{Binding !IsTransferring}"
+                Background="{DynamicResource SystemControlChromeMediumLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="8,6">
+            <TextBlock FontSize="11"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       Text="{Binding LeftStatus}"/>
+        </Border>
+
+        <Border Grid.Row="1"
+                Grid.Column="2"
+                MinHeight="32"
+                Margin="4,0,0,0"
+                IsVisible="{Binding !IsTransferring}"
+                Background="{DynamicResource SystemControlChromeMediumLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="8,6">
+            <TextBlock FontSize="11"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       Text="{Binding RightStatus}"/>
+        </Border>
+
+        <Border Grid.Row="1"
+                Grid.Column="0"
+                Grid.ColumnSpan="3"
+                ZIndex="3"
+                MinHeight="32"
+                IsVisible="{Binding IsTransferring}"
                 Background="{DynamicResource SystemControlChromeMediumLowBrush}"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 BorderThickness="1"
@@ -648,7 +1071,6 @@
                            TextTrimming="CharacterEllipsis"
                            Text="{Binding Status}"/>
                 <Grid Grid.Row="1"
-                      IsVisible="{Binding IsTransferring}"
                       ColumnDefinitions="*,Auto,Auto"
                       ColumnSpacing="10">
                     <ProgressBar Grid.Column="0"
@@ -658,18 +1080,28 @@
                                  VerticalAlignment="Center"
                                  Value="{Binding ProgressValue}"/>
                     <TextBlock Grid.Column="1"
-                               MinWidth="88"
+                               MinWidth="150"
                                FontSize="11"
                                VerticalAlignment="Center"
                                Text="{Binding ProgressText}"/>
-                    <TextBlock Grid.Column="2"
-                               MinWidth="72"
-                               FontSize="11"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Right"
-                               Text="{Binding TransferSpeedText}"/>
+                    <Button Grid.Column="2"
+                            Width="24"
+                            Height="24"
+                            Padding="0"
+                            VerticalAlignment="Center"
+                            Command="{Binding CancelTransferCommand}"
+                            ToolTip.Tip="Avbryt överföring">
+                        <Path Data="{StaticResource CancelTransferIcon}"
+                              Stroke="{DynamicResource SystemControlForegroundBaseHighBrush}"
+                              StrokeThickness="1.6"
+                              StrokeLineCap="Round"
+                              Stretch="Uniform"
+                              Width="10"
+                              Height="10"/>
+                    </Button>
                 </Grid>
             </Grid>
         </Border>
+        </Grid>
     </Grid>
 </Window>

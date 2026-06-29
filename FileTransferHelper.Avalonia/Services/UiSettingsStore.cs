@@ -17,6 +17,14 @@ public sealed class UiSettings
 
     public string LastConnectedUsername { get; set; } = "";
 
+    public List<string> AutoConnectHostAddresses { get; set; } = [];
+
+    public Dictionary<string, string> UsernamesByHost { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public string LastLeftDeviceId { get; set; } = "";
+
+    public string LastRightDeviceId { get; set; } = "";
+
     public int? WindowX { get; set; }
 
     public int? WindowY { get; set; }

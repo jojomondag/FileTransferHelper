@@ -6,6 +6,7 @@ namespace FileTransferHelper.Services;
 
 public sealed class SftpTransferClient : IDisposable
 {
+    private readonly object _syncRoot = new();
     private SshClient? _sshClient;
     private SftpClient? _sftpClient;
     private ConnectionParams? _connectionParams;
@@ -14,85 +15,186 @@ public sealed class SftpTransferClient : IDisposable
 
     public string Connect(string host, string username, string? password, string? keyPath)
     {
-        _connectionParams = new ConnectionParams(host, username, password, keyPath);
-        ConnectCurrent();
-        return Normalize(".");
+        lock (_syncRoot)
+        {
+            _connectionParams = new ConnectionParams(host, username, password, keyPath);
+            ConnectCurrent();
+            return Normalize(".");
+        }
     }
 
     public void Close()
     {
-        try
+        lock (_syncRoot)
         {
-            _sftpClient?.Dispose();
-            _sshClient?.Dispose();
-        }
-        finally
-        {
-            _sftpClient = null;
-            _sshClient = null;
+            try
+            {
+                _sftpClient?.Dispose();
+                _sshClient?.Dispose();
+            }
+            finally
+            {
+                _sftpClient = null;
+                _sshClient = null;
+            }
         }
     }
 
     public string Normalize(string path)
     {
-        RequireSftp();
-        path = string.IsNullOrWhiteSpace(path) ? "." : PosixPath.NormalizeSlashes(path.Trim());
-        if (path == ".")
+        lock (_syncRoot)
         {
-            return _sftpClient!.WorkingDirectory;
-        }
+            RequireSftp();
+            path = string.IsNullOrWhiteSpace(path) ? "." : PosixPath.NormalizeSlashes(path.Trim());
+            if (path == ".")
+            {
+                return _sftpClient!.WorkingDirectory;
+            }
 
-        return path.StartsWith("/", StringComparison.Ordinal)
-            ? PosixPath.Normalize(path)
-            : PosixPath.Normalize(PosixPath.Join(_sftpClient!.WorkingDirectory, path));
+            return path.StartsWith("/", StringComparison.Ordinal)
+                ? PosixPath.Normalize(path)
+                : PosixPath.Normalize(PosixPath.Join(_sftpClient!.WorkingDirectory, path));
+        }
     }
 
     public IReadOnlyList<RemoteEntry> ListEntries(string path)
     {
-        RequireSftp();
-        var entries = new List<RemoteEntry>();
-        IReadOnlyList<Renci.SshNet.Sftp.ISftpFile> remoteItems;
-        try
+        lock (_syncRoot)
         {
-            remoteItems = _sftpClient!.ListDirectory(path)
-                .Where(item => item.Name is not "." and not "..")
+            RequireSftp();
+            var entries = new List<RemoteEntry>();
+            IReadOnlyList<Renci.SshNet.Sftp.ISftpFile> remoteItems;
+            try
+            {
+                remoteItems = _sftpClient!.ListDirectory(path)
+                    .Where(item => item.Name is not "." and not "..")
+                    .ToList();
+            }
+            catch (Exception exc)
+            {
+                LogException($"Kunde inte lista fjärrmapp: {path}", exc);
+                throw;
+            }
+
+            foreach (var item in remoteItems)
+            {
+                entries.Add(new RemoteEntry(item.Name, item.IsDirectory, item.Length, PosixPath.Join(path, item.Name)));
+            }
+
+            var dirCount = entries.Count(entry => entry.IsDirectory);
+            var fileCount = entries.Count - dirCount;
+            Log($"Listade fjärrmapp {path}: {dirCount} mappar, {fileCount} filer");
+            return entries
+                .OrderBy(item => !item.IsDirectory)
+                .ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
-        catch (Exception exc)
-        {
-            LogException($"Kunde inte lista fjärrmapp: {path}", exc);
-            throw;
-        }
-
-        foreach (var item in remoteItems)
-        {
-            entries.Add(new RemoteEntry(item.Name, item.IsDirectory, item.Length));
-        }
-
-        var dirCount = entries.Count(entry => entry.IsDirectory);
-        var fileCount = entries.Count - dirCount;
-        Log($"Listade fjärrmapp {path}: {dirCount} mappar, {fileCount} filer");
-        return entries
-            .OrderBy(item => !item.IsDirectory)
-            .ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
     }
 
     public IReadOnlyList<string> ListSubdirectories(string path)
     {
-        RequireSftp();
-        try
+        lock (_syncRoot)
         {
-            return _sftpClient!.ListDirectory(path)
-                .Where(item => item.IsDirectory && item.Name is not "." and not "..")
-                .Select(item => item.Name)
-                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            RequireSftp();
+            try
+            {
+                return _sftpClient!.ListDirectory(path)
+                    .Where(item => item.IsDirectory && item.Name is not "." and not "..")
+                    .Select(item => item.Name)
+                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+            catch (Exception exc)
+            {
+                LogException($"Kunde inte lista undermappar: {path}", exc);
+                throw;
+            }
         }
-        catch (Exception exc)
+    }
+
+    public StorageInfo? GetStorageInfo(string path)
+    {
+        lock (_syncRoot)
         {
-            LogException($"Kunde inte lista undermappar: {path}", exc);
-            throw;
+            RequireSftp();
+            RequireSsh();
+            var normalized = Normalize(path);
+            var command = _sshClient!.RunCommand($"df -Pk -- {ShellQuote(normalized)}");
+            if (command.ExitStatus != 0)
+            {
+                Log($"Kunde inte läsa fjärrutrymme för {normalized}: {command.Error.Trim()}");
+                return null;
+            }
+
+            var line = command.Result
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                .Skip(1)
+                .FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return null;
+            }
+
+            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 4
+                || !long.TryParse(parts[1], out var totalBlocks)
+                || !long.TryParse(parts[3], out var availableBlocks))
+            {
+                Log($"Kunde inte tolka fjärrutrymme för {normalized}: {line}");
+                return null;
+            }
+
+            const long blockSize = 1024;
+            return new StorageInfo(availableBlocks * blockSize, totalBlocks * blockSize);
+        }
+    }
+
+    public DirectoryContentSummary CountDirectoryContent(string path)
+    {
+        lock (_syncRoot)
+        {
+            RequireSftp();
+            var normalized = Normalize(path);
+            var directDirectories = 0;
+            var directFiles = 0;
+            var subdirectories = 0;
+            var nestedFiles = 0;
+            var directBytes = 0L;
+            var nestedBytes = 0L;
+
+            IReadOnlyList<Renci.SshNet.Sftp.ISftpFile> entries;
+            try
+            {
+                entries = _sftpClient!.ListDirectory(normalized)
+                    .Where(item => item.Name is not "." and not "..")
+                    .ToList();
+            }
+            catch
+            {
+                return new DirectoryContentSummary(0, 0, 0, 0);
+            }
+
+            foreach (var entry in entries)
+            {
+                if (entry.IsDirectory)
+                {
+                    directDirectories++;
+                    CountNestedRemoteContent(PosixPath.Join(normalized, entry.Name), ref subdirectories, ref nestedFiles, ref nestedBytes);
+                }
+                else
+                {
+                    directFiles++;
+                    directBytes += entry.Length;
+                }
+            }
+
+            return new DirectoryContentSummary(
+                directDirectories,
+                directFiles,
+                subdirectories,
+                nestedFiles,
+                directBytes,
+                nestedBytes);
         }
     }
 
@@ -197,9 +299,11 @@ public sealed class SftpTransferClient : IDisposable
         Action<int, int, string, string> progress,
         Action<string>? status = null,
         Action<UploadProgressUpdate>? uploadProgress = null,
-        Action<string>? foldersPrepared = null)
+        Action<string>? foldersPrepared = null,
+        CancellationToken cancellationToken = default)
     {
         RequireSftp();
+        cancellationToken.ThrowIfCancellationRequested();
         Log("");
         Log("=== Ny överföring ===");
         Log($"Destination från GUI: {remoteDestination}");
@@ -220,11 +324,13 @@ public sealed class SftpTransferClient : IDisposable
             throw new InvalidOperationException($"Kunde inte förbereda destinationen {remoteDestination}: {ErrorText(exc)}", exc);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         if (PrepareRemoteFolderStructure(localPaths, remoteDestination, status))
         {
             foldersPrepared?.Invoke(remoteDestination);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         Log("Planerar överföring genom att läsa fjärrmappar först...");
         status?.Invoke("Kontrollerar vilka filer som redan finns på Raspberry Pi...");
         var plan = BuildTransferPlan(localPaths, remoteDestination, status);
@@ -237,6 +343,7 @@ public sealed class SftpTransferClient : IDisposable
         var done = 0;
         foreach (var item in plan)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (item.Action == "skipped")
             {
                 Log($"Hoppar över befintlig fil med samma storlek: {item.LocalPath} -> {item.RemotePath}");
@@ -246,12 +353,49 @@ public sealed class SftpTransferClient : IDisposable
             }
 
             progress(done, totalFiles, item.DisplayName, item.Action);
-            UploadPlannedFile(item, status, uploadProgress);
+            UploadPlannedFile(item, status, uploadProgress, cancellationToken);
             done++;
             progress(done, totalFiles, item.DisplayName, item.Action);
         }
 
         Log($"Överföring klar. Behandlade={done}, hoppade över={skipped}, döpte om={renamed}");
+    }
+
+    public void DownloadPaths(
+        IReadOnlyList<string> remotePaths,
+        string localDestination,
+        Action<int, int, string, string> progress,
+        Action<string>? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        RequireSftp();
+        Directory.CreateDirectory(localDestination);
+
+        var files = new List<(string RemotePath, string LocalPath, string DisplayName)>();
+        foreach (var remotePath in remotePaths)
+        {
+            var normalized = Normalize(remotePath);
+            var name = PosixPath.FileName(normalized.TrimEnd('/'));
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = "root";
+            }
+
+            CollectDownloadFiles(normalized, Path.Combine(localDestination, name), name, files);
+        }
+
+        var done = 0;
+        foreach (var file in files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Directory.CreateDirectory(Path.GetDirectoryName(file.LocalPath) ?? localDestination);
+            status?.Invoke($"Hämtar: {file.DisplayName}");
+            progress(done, files.Count, file.DisplayName, "downloaded");
+            using var output = File.Create(file.LocalPath);
+            _sftpClient!.DownloadFile(file.RemotePath, output);
+            done++;
+            progress(done, files.Count, file.DisplayName, "downloaded");
+        }
     }
 
     public void Dispose() => Close();
@@ -332,6 +476,30 @@ public sealed class SftpTransferClient : IDisposable
         }
 
         return files;
+    }
+
+    private void CollectDownloadFiles(
+        string remotePath,
+        string localPath,
+        string displayName,
+        List<(string RemotePath, string LocalPath, string DisplayName)> files)
+    {
+        var attributes = _sftpClient!.GetAttributes(remotePath);
+        if (!attributes.IsDirectory)
+        {
+            files.Add((remotePath, localPath, displayName));
+            return;
+        }
+
+        Directory.CreateDirectory(localPath);
+        foreach (var entry in _sftpClient.ListDirectory(remotePath).Where(item => item.Name is not "." and not ".."))
+        {
+            CollectDownloadFiles(
+                PosixPath.Join(remotePath, entry.Name),
+                Path.Combine(localPath, entry.Name),
+                PosixPath.Join(displayName, entry.Name),
+                files);
+        }
     }
 
     private List<TransferItem> BuildTransferPlan(IReadOnlyList<string> localPaths, string remoteDestination, Action<string>? status)
@@ -420,8 +588,13 @@ public sealed class SftpTransferClient : IDisposable
         return new TransferItem(localPath, remoteFile, "uploaded", Path.GetFileName(localPath));
     }
 
-    private void UploadPlannedFile(TransferItem item, Action<string>? status, Action<UploadProgressUpdate>? uploadProgress)
+    private void UploadPlannedFile(
+        TransferItem item,
+        Action<string>? status,
+        Action<UploadProgressUpdate>? uploadProgress,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         MkdirP(PosixPath.DirectoryName(item.RemotePath));
         if (item.Action == "renamed")
         {
@@ -439,6 +612,7 @@ public sealed class SftpTransferClient : IDisposable
 
         for (var attempt = 1; attempt <= AppPaths.TransferRetryAttempts; attempt++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 using var input = File.OpenRead(item.LocalPath);
@@ -449,6 +623,7 @@ public sealed class SftpTransferClient : IDisposable
                 uploadProgress?.Invoke(new UploadProgressUpdate(statusLabel, 0, 0, 0, fileSize));
                 _sftpClient!.UploadFile(input, item.RemotePath, true, uploadedBytes =>
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var percent = fileSize <= 0 ? 100 : (int)(uploadedBytes * 100 / (ulong)fileSize);
                     var nowTick = Environment.TickCount64;
                     if (percent == lastPercent && nowTick - lastReportTick < 250)
@@ -468,6 +643,12 @@ public sealed class SftpTransferClient : IDisposable
             }
             catch (Exception exc)
             {
+                if (exc is OperationCanceledException || cancellationToken.IsCancellationRequested)
+                {
+                    Log($"Överföring avbruten under fil: {item.LocalPath} -> {item.RemotePath}");
+                    throw new OperationCanceledException(cancellationToken);
+                }
+
                 if (!IsConnectionError(exc) || attempt >= AppPaths.TransferRetryAttempts)
                 {
                     LogException($"Misslyckades med fil: {item.LocalPath} -> {item.RemotePath}", exc);
@@ -476,7 +657,11 @@ public sealed class SftpTransferClient : IDisposable
 
                 LogException($"Anslutningen bröts under fil: {item.LocalPath} -> {item.RemotePath}. Försök {attempt}/{AppPaths.TransferRetryAttempts}", exc);
                 status?.Invoke($"Anslutningen bröts. Väntar {AppPaths.TransferRetryDelaySeconds}s och återansluter ({attempt}/{AppPaths.TransferRetryAttempts})...");
-                Thread.Sleep(TimeSpan.FromSeconds(AppPaths.TransferRetryDelaySeconds));
+                if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromSeconds(AppPaths.TransferRetryDelaySeconds)))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
                 Reconnect(status);
             }
         }
@@ -516,6 +701,36 @@ public sealed class SftpTransferClient : IDisposable
             else
             {
                 index[remotePath] = new RemoteFileInfo(entry.Length, entry.LastWriteTime);
+            }
+        }
+    }
+
+    private void CountNestedRemoteContent(string remoteDir, ref int subdirectories, ref int nestedFiles, ref long nestedBytes)
+    {
+        subdirectories++;
+        IReadOnlyList<Renci.SshNet.Sftp.ISftpFile> entries;
+        try
+        {
+            entries = _sftpClient!.ListDirectory(remoteDir)
+                .Where(item => item.Name is not "." and not "..")
+                .ToList();
+        }
+        catch
+        {
+            return;
+        }
+
+        foreach (var entry in entries)
+        {
+            var remotePath = PosixPath.Join(remoteDir, entry.Name);
+            if (entry.IsDirectory)
+            {
+                CountNestedRemoteContent(remotePath, ref subdirectories, ref nestedFiles, ref nestedBytes);
+            }
+            else
+            {
+                nestedFiles++;
+                nestedBytes += entry.Length;
             }
         }
     }
@@ -622,6 +837,19 @@ public sealed class SftpTransferClient : IDisposable
         {
             throw new InvalidOperationException("Inte ansluten till Raspberry Pi.");
         }
+    }
+
+    private void RequireSsh()
+    {
+        if (_sshClient is null || !_sshClient.IsConnected)
+        {
+            throw new InvalidOperationException("Inte ansluten till Raspberry Pi.");
+        }
+    }
+
+    private static string ShellQuote(string value)
+    {
+        return $"'{value.Replace("'", "'\"'\"'", StringComparison.Ordinal)}'";
     }
 
     private static bool IsConnectionError(Exception exc)

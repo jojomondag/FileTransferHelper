@@ -33,7 +33,8 @@ public sealed class NetworkDiscoveryService
                     string.IsNullOrWhiteSpace(item.Source) ? "sparad" : item.Source.Trim(),
                     item.Username?.Trim() ?? string.Empty,
                     item.UseKey,
-                    item.KeyPath?.Trim() ?? string.Empty))
+                    item.KeyPath?.Trim() ?? string.Empty,
+                    item.HardwareId?.Trim() ?? string.Empty))
                 .ToList());
         }
         catch (Exception exc) when (exc is IOException or JsonException or UnauthorizedAccessException)
@@ -62,6 +63,7 @@ public sealed class NetworkDiscoveryService
             Username = host.Username,
             UseKey = host.UseKey,
             KeyPath = host.KeyPath,
+            HardwareId = host.HardwareId,
             UpdatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
         }).ToList();
 
@@ -161,7 +163,7 @@ public sealed class NetworkDiscoveryService
             Add(candidate);
         }
 
-        var results = SortHosts(found.Values);
+        var results = await LabelDuplicateNetworkInterfacesAsync(found.Values, cancellationToken);
         if (results.Count > 0)
         {
             SaveCache(results);
@@ -241,7 +243,8 @@ public sealed class NetworkDiscoveryService
                     }
 
                     var displayName = BestMdnsDisplayName(result.DisplayName, result.Id);
-                    hosts.Add(new HostCandidate(displayName, address, source));
+                    var hardwareId = HardwareIdFromMdnsName(result.DisplayName) ?? HardwareIdFromMdnsName(result.Id) ?? "";
+                    hosts.Add(new HostCandidate(displayName, address, source, HardwareId: hardwareId));
                     count++;
                 }
 
@@ -501,6 +504,17 @@ public sealed class NetworkDiscoveryService
         return cleanedServer ?? cleanedService ?? "mDNS-enhet";
     }
 
+    private static string? HardwareIdFromMdnsName(string? hostname)
+    {
+        if (string.IsNullOrWhiteSpace(hostname))
+        {
+            return null;
+        }
+
+        var match = Regex.Match(hostname, @"\[([0-9a-f]{2}(?::[0-9a-f]{2}){5})\]", RegexOptions.IgnoreCase);
+        return match.Success ? match.Groups[1].Value.ToLowerInvariant() : null;
+    }
+
     private static string? CleanHostname(string? hostname)
     {
         if (string.IsNullOrWhiteSpace(hostname))
@@ -509,6 +523,11 @@ public sealed class NetworkDiscoveryService
         }
 
         hostname = hostname.Trim().TrimEnd('.');
+        hostname = Regex.Replace(
+            hostname,
+            @"\s*\[[0-9a-f]{2}(?::[0-9a-f]{2}){5}\]\s*$",
+            "",
+            RegexOptions.IgnoreCase).Trim();
         return string.IsNullOrEmpty(hostname) || hostname.Equals("localhost", StringComparison.OrdinalIgnoreCase) ? null : hostname;
     }
 
@@ -545,8 +564,111 @@ public sealed class NetworkDiscoveryService
         {
             Username = string.IsNullOrWhiteSpace(primary.Username) ? fallback.Username : primary.Username,
             UseKey = primary.UseKey || fallback.UseKey,
-            KeyPath = string.IsNullOrWhiteSpace(primary.KeyPath) ? fallback.KeyPath : primary.KeyPath
+            KeyPath = string.IsNullOrWhiteSpace(primary.KeyPath) ? fallback.KeyPath : primary.KeyPath,
+            HardwareId = string.IsNullOrWhiteSpace(primary.HardwareId) ? fallback.HardwareId : primary.HardwareId
         };
+    }
+
+    private static async Task<IReadOnlyList<HostCandidate>> LabelDuplicateNetworkInterfacesAsync(
+        IEnumerable<HostCandidate> hosts,
+        CancellationToken cancellationToken)
+    {
+        var normalized = hosts
+            .Select(host => host with { Name = BaseDisplayName(host.Name) })
+            .ToList();
+        var labeled = new List<HostCandidate>();
+
+        foreach (var group in normalized.GroupBy(host => host.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            var items = group.ToList();
+            if (items.Count == 2 && LooksLikeSamePhysicalDevice(items))
+            {
+                var ordered = await OrderByLikelyNetworkSpeedAsync(items, cancellationToken);
+                labeled.Add(ordered[0] with { Name = $"{ordered[0].Name} (kabel)" });
+                labeled.Add(ordered[1] with { Name = $"{ordered[1].Name} (Wi-Fi)" });
+                continue;
+            }
+
+            labeled.AddRange(items);
+        }
+
+        return SortHosts(labeled);
+    }
+
+    private static string BaseDisplayName(string name)
+    {
+        return Regex.Replace(name, @"\s*\((?:kabel|wi-fi)\)\s*$", "", RegexOptions.IgnoreCase).Trim();
+    }
+
+    private static bool LooksLikeSamePhysicalDevice(IReadOnlyList<HostCandidate> hosts)
+    {
+        if (hosts.Any(host => string.IsNullOrWhiteSpace(host.HardwareId)))
+        {
+            return false;
+        }
+
+        var values = hosts
+            .Select(host => MacToUInt64(host.HardwareId))
+            .Where(value => value.HasValue)
+            .Select(value => value!.Value)
+            .Order()
+            .ToList();
+
+        return values.Count == 2 && values[1] - values[0] <= 2;
+    }
+
+    private static ulong? MacToUInt64(string hardwareId)
+    {
+        var hex = hardwareId.Replace(":", "", StringComparison.Ordinal).Replace("-", "", StringComparison.Ordinal);
+        return ulong.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out var value) ? value : null;
+    }
+
+    private static async Task<IReadOnlyList<HostCandidate>> OrderByLikelyNetworkSpeedAsync(
+        IReadOnlyList<HostCandidate> hosts,
+        CancellationToken cancellationToken)
+    {
+        var measured = new List<(HostCandidate Host, double Latency)>();
+        foreach (var host in hosts)
+        {
+            measured.Add((host, await AveragePingLatencyAsync(host.Address, cancellationToken)));
+        }
+
+        return measured
+            .OrderBy(item => item.Latency)
+            .ThenBy(item => IpSortKey(item.Host.Address))
+            .Select(item => item.Host)
+            .ToList();
+    }
+
+    private static async Task<double> AveragePingLatencyAsync(string address, CancellationToken cancellationToken)
+    {
+        using var ping = new Ping();
+        var latencies = new List<long>();
+        for (var i = 0; i < 4; i++)
+        {
+            try
+            {
+                var reply = await ping.SendPingAsync(address, 800);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (reply.Status == IPStatus.Success)
+                {
+                    latencies.Add(reply.RoundtripTime);
+                }
+            }
+            catch
+            {
+                // If ICMP is unavailable, IP ordering is used as a stable fallback.
+            }
+        }
+
+        return latencies.Count == 0 ? double.MaxValue : latencies.Average();
+    }
+
+    private static uint IpSortKey(string address)
+    {
+        return IPAddress.TryParse(address, out var parsed) && parsed.AddressFamily == AddressFamily.InterNetwork
+            ? ToUInt32(parsed)
+            : uint.MaxValue;
     }
 
     private static List<HostCandidate> SortHosts(IEnumerable<HostCandidate> hosts)
@@ -605,6 +727,8 @@ public sealed class NetworkDiscoveryService
         public bool UseKey { get; set; }
         [JsonPropertyName("key_path")]
         public string? KeyPath { get; set; } = "";
+        [JsonPropertyName("hardware_id")]
+        public string? HardwareId { get; set; } = "";
         [JsonPropertyName("updated_at")]
         public string? UpdatedAt { get; set; }
     }
